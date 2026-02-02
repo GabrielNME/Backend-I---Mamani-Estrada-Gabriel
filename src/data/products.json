@@ -1,0 +1,46 @@
+[
+  {
+    "id": "6a265c79-5e10-4d6e-baf0-59b6d5ca2516",
+    "status": true,
+    "thumbnails": [],
+    "title": "Placard 6 Puertas",
+    "description": "Placard de puertas blancas con 6 puertas, incluye 4 cajoneras",
+    "code": "DOR255",
+    "price": 420000,
+    "stock": 6,
+    "category": "Dormitorio"
+  },
+  {
+    "id": "753b4891-e82c-47dc-89da-b7f250126254",
+    "status": true,
+    "thumbnails": [],
+    "title": "Silla de Pc Gaona",
+    "description": "Silla de escritorio 50x62x113 Cm Ecocuero",
+    "code": "OFF035",
+    "price": 140000,
+    "stock": 10,
+    "category": "Oficina"
+  },
+  {
+    "id": "91b0527e-a8b3-49d8-8e3c-3033bd69b8a4",
+    "status": true,
+    "thumbnails": [],
+    "title": "Sillon Finlandia'",
+    "description": "Sillon de 3 Cuerpos negro linea Finlandia'",
+    "code": "LIV305",
+    "price": 365000,
+    "stock": 4,
+    "category": "Living"
+  },
+  {
+    "id": "5e6d6125-c55b-49b7-8bd3-a689ada77392",
+    "status": true,
+    "thumbnails": [],
+    "title": "Juego comedor Carmin Vison",
+    "description": "Juego de mesa y 6 sillas linea Carmin Vison",
+    "code": "COM125",
+    "price": 160000,
+    "stock": 4,
+    "category": "Comedor"
+  }
+]
