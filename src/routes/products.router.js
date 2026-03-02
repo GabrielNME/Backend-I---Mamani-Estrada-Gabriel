@@ -1,38 +1,10 @@
 import { Router } from "express";
 import ProductManager from "../managers/productManager.js";
+import { validateProduct } from "../middlewares/products.middleware.js";
+import { successResponse, errorResponse } from "../utils/response.js";
 
 const router = Router();
 const productManager = new ProductManager();
-
-const validateProduct = (data, isUpdate = false) => {
-  const { title, description, code, price, stock, category } = data;
-
-  if (!isUpdate) {
-    if (
-      !title ||
-      !description ||
-      !code ||
-      price === undefined ||
-      stock === undefined ||
-      !category
-    ) {
-      return "Faltan campos obligatorios";
-    }
-  }
-
-  if (title && typeof title !== "string") return "El título debe ser un string";
-  if (description && typeof description !== "string")
-    return "La descripción debe ser un string";
-  if (code && typeof code !== "string") return "El código debe ser un string";
-  if (price !== undefined && (typeof price !== "number" || price <= 0))
-    return "El precio debe ser un número mayor a 0";
-  if (stock !== undefined && (typeof stock !== "number" || stock < 0))
-    return "El stock debe ser un número válido";
-  if (category && typeof category !== "string")
-    return "La categoría debe ser un string";
-
-  return null;
-};
 
 // GET /api/products
 router.get("/", async (req, res) => {
@@ -44,17 +16,15 @@ router.get("/", async (req, res) => {
       const parsedLimit = parseInt(limit);
 
       if (isNaN(parsedLimit) || parsedLimit <= 0) {
-        return res
-          .status(400)
-          .json({ error: "El limit debe ser un número válido" });
+        return errorResponse(res, "El limit debe ser un número válido", 400);
       }
 
-      return res.json(products.slice(0, parsedLimit));
+      return successResponse(res, products.slice(0, parsedLimit));
     }
 
-    res.json(products);
+    return successResponse(res, products);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return errorResponse(res, error.message, 500);
   }
 });
 
@@ -64,23 +34,18 @@ router.get("/:pid", async (req, res) => {
     const product = await productManager.getProductById(req.params.pid);
 
     if (!product) {
-      return res.status(404).json({ error: "Producto no encontrado" });
+      return errorResponse(res, "Producto no encontrado", 404);
     }
 
-    res.json(product);
+    return successResponse(res, product);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return errorResponse(res, error.message, 500);
   }
 });
 
 // POST /api/products
-router.post("/", async (req, res) => {
+router.post("/", validateProduct(false), async (req, res) => {
   try {
-    const errorValidation = validateProduct(req.body);
-    if (errorValidation) {
-      return res.status(400).json({ error: errorValidation });
-    }
-
     const productData = {
       status: true,
       thumbnails: [],
@@ -88,32 +53,32 @@ router.post("/", async (req, res) => {
     };
 
     const newProduct = await productManager.addProduct(productData);
-    res.status(201).json(newProduct);
+
+    const io = req.app.get("io");
+    const products = await productManager.getProducts();
+    io.emit("updateProducts", products);
+
+    return successResponse(res, newProduct, 201);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return errorResponse(res, error.message, 500);
   }
 });
 
 // PUT /api/products/:pid
-router.put("/:pid", async (req, res) => {
+router.put("/:pid", validateProduct(true), async (req, res) => {
   try {
-    const errorValidation = validateProduct(req.body, true);
-    if (errorValidation) {
-      return res.status(400).json({ error: errorValidation });
-    }
-
     const updatedProduct = await productManager.updateProduct(
       req.params.pid,
       req.body,
     );
 
     if (!updatedProduct) {
-      return res.status(404).json({ error: "Producto no encontrado" });
+      return errorResponse(res, "Producto no encontrado", 404);
     }
 
-    res.json(updatedProduct);
+    return successResponse(res, updatedProduct);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return errorResponse(res, error.message, 500);
   }
 });
 
@@ -123,12 +88,16 @@ router.delete("/:pid", async (req, res) => {
     const deleted = await productManager.deleteProduct(req.params.pid);
 
     if (!deleted) {
-      return res.status(404).json({ error: "Producto no encontrado" });
+      return errorResponse(res, "Producto no encontrado", 404);
     }
 
-    res.json({ message: "Producto eliminado correctamente" });
+    const io = req.app.get("io");
+    const products = await productManager.getProducts();
+    io.emit("updateProducts", products);
+
+    return successResponse(res, "Producto eliminado correctamente");
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return errorResponse(res, error.message, 500);
   }
 });
 

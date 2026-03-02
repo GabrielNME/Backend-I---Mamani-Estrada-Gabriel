@@ -1,0 +1,76 @@
+<h1>Productos en Tiempo Real</h1>
+
+<ul id="productList">
+  {{#each products}}
+    <li>
+      <strong>{{this.title}}</strong>
+      - ${{this.price}}
+    </li>
+  {{/each}}
+</ul>
+
+<h2>Agregar Producto</h2>
+
+<form id="productForm">
+  <input type="text" name="title" placeholder="Título" required />
+  <input type="text" name="description" placeholder="Descripción" required />
+  <input type="text" name="code" placeholder="Código" required />
+  <input type="number" name="price" placeholder="Precio" required />
+  <input type="number" name="stock" placeholder="Stock" required />
+  <input type="text" name="category" placeholder="Categoría" required />
+  <button type="submit">Agregar</button>
+</form>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+  const socket = io();
+  const productList = document.getElementById("productList");
+  const form = document.getElementById("productForm");
+
+  socket.on("updateProducts", (products) => {
+    productList.innerHTML = "";
+
+    products.forEach((product) => {
+      const li = document.createElement("li");
+
+      li.innerHTML = `
+        <strong>${product.title}</strong> - $${product.price}
+        <button onclick="deleteProduct('${product.id}')">
+          Eliminar
+        </button>
+      `;
+
+      productList.appendChild(li);
+    });
+  });
+
+  async function deleteProduct(id) {
+    await fetch(`/api/products/${id}`, {
+      method: "DELETE",
+    });
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(form);
+
+    const product = {
+      title: formData.get("title"),
+      description: formData.get("description"),
+      code: formData.get("code"),
+      price: Number(formData.get("price")),
+      stock: Number(formData.get("stock")),
+      category: formData.get("category"),
+    };
+
+    await fetch("/api/products", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(product),
+    });
+
+    form.reset();
+  });
+</script>

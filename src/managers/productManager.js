@@ -31,7 +31,7 @@ export default class ProductManager {
 
   async getProductById(id) {
     const products = await this._readFile();
-    return products.find((p) => p.id === id);
+    return products.find((p) => p.id === String(id));
   }
 
   async addProduct(productData) {
@@ -52,7 +52,7 @@ export default class ProductManager {
 
   async updateProduct(id, updateData) {
     const products = await this._readFile();
-    const index = products.findIndex((p) => p.id === id);
+    const index = products.findIndex((p) => p.id === String(id));
 
     if (index === -1) return null;
 
@@ -68,7 +68,7 @@ export default class ProductManager {
 
   async deleteProduct(id) {
     const products = await this._readFile();
-    const filteredProducts = products.filter((p) => p.id !== id);
+    const filteredProducts = products.filter((p) => p.id !== String(id));
 
     if (products.length === filteredProducts.length) return null;
 
