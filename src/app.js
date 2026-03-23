@@ -50,7 +50,7 @@ app.set("views", path.resolve("src/views"));
 
 // 🔹 Rutas API
 
-// 🔹 Redirección de la raíz al catálogo de productos
+// 🔹 Redirección a /products
 app.get("/", (req, res) => {
     res.redirect("/products");
 });

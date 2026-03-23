@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 export const connectDB = async () => {
     try {
-        const url = process.env.MONGODB_CNXStr;
+        const url = process.env.MONGODB_CNXStr
         
         await mongoose.connect(url);
         console.log("✅ Conexión exitosa a MongoDB");

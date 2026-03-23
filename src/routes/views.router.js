@@ -29,6 +29,8 @@ router.get("/products", async (req, res) => {
             sort,
             query
         });
+
+        
         res.render("products", {
             payload: result.payload,
             limit: limit,
