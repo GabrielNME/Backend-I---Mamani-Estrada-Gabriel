@@ -1,0 +1,133 @@
+<style>
+    /* Variables y Reset */
+    :root { --primary: #008000; --danger: #ff4d4d; --shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .admin-container { max-width: 1000px; margin: 0 auto; padding: 20px; font-family: sans-serif; }
+    
+    /* Tarjetas */
+    .card { background: white; padding: 25px; border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 30px; }
+    .card h2 { color: var(--primary); border-left: 5px solid var(--primary); padding-left: 15px; margin-bottom: 20px; }
+    
+    /* Formulario */
+    .grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; }
+    .input-std { padding: 10px; border: 1px solid #ccc; border-radius: 6px; outline: none; transition: 0.3s; }
+    .input-std:focus { border-color: var(--primary); }
+    .btn-add { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+
+    /* Lista de Productos */
+    .product-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; border: 1px solid #eee; border-radius: 10px; margin-bottom: 10px; transition: 0.2s; }
+    .product-row:hover { background: #fafafa; }
+    .prod-info { flex: 2; }
+    .prod-actions { flex: 3; display: flex; gap: 15px; align-items: center; justify-content: flex-end; }
+    .input-edit { width: 70px; padding: 5px; border: 1px solid #ddd; border-radius: 4px; text-align: center; }
+    .label-edit { font-size: 0.7rem; color: #999; display: block; }
+    .btn-del { background: var(--danger); color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+</style>
+
+<div class="admin-container">
+    <div class="card">
+        <h2>Panel de Gestión</h2>
+        <h3>Agregar Producto</h3>
+        <form id="productForm" class="grid-form">
+            <input type="text" name="title" placeholder="Título" required class="input-std">
+            <input type="text" name="description" placeholder="Descripción" required class="input-std">
+            <input type="text" name="code" placeholder="Código" required class="input-std">
+            <input type="number" name="price" placeholder="Precio" required class="input-std">
+            <input type="number" name="stock" placeholder="Stock" required class="input-std">
+            <input type="text" name="category" placeholder="Categoría" required class="input-std">
+            <button type="submit" class="btn-add">AGREGAR PRODUCTO</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-bottom: 20px;">Productos Existentes</h3>
+        <div id="productList">
+            <p style="color: #999; text-align: center;">Cargando productos...</p>
+        </div>
+    </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    const socket = io();
+    const productList = document.getElementById("productList");
+    const form = document.getElementById("productForm");
+
+    // Renderizado optimizado con clases
+    function renderProducts(products) {
+        if (!products.length) {
+            productList.innerHTML = '<p style="text-align:center; color:#999;">No hay productos registrados.</p>';
+            return;
+        }
+
+        productList.innerHTML = products.map(p => `
+            <div class="product-row" id="item-${p._id}">
+                <div class="prod-info">
+                    <strong style="color:#333">${p.title}</strong>
+                    <small style="color:var(--primary); font-weight:bold; display:block;">${p.category}</small>
+                    <span style="color:#888; font-size:0.75rem;">Cod: ${p.code}</span>
+                </div>
+                <div class="prod-actions">
+                    <div>
+                        <label class="label-edit">Precio ($)</label>
+                        <input type="number" value="${p.price}" class="input-edit" onchange="updateField('${p._id}', 'price', this.value)">
+                    </div>
+                    <div>
+                        <label class="label-edit">Stock</label>
+                        <input type="number" value="${p.stock}" class="input-edit" onchange="updateField('${p._id}', 'stock', this.value)">
+                    </div>
+                    <button onclick="deleteProduct('${p._id}')" class="btn-del">🗑️</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    socket.on("updateProducts", renderProducts);
+
+    // Lógica de Envío (POST)
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(form));
+        
+        const res = await fetch("/api/products", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...data, price: Number(data.price), stock: Number(data.stock), status: true, thumbnails: [] })
+        });
+
+        if (res.ok) {
+            Swal.fire({ icon: 'success', title: '¡Agregado!', timer: 1500, showConfirmButton: false });
+            form.reset();
+        } else {
+            Swal.fire('Error', 'No se pudo agregar el producto', 'error');
+        }
+    });
+
+    // Función Eliminar
+    async function deleteProduct(id) {
+        const { isConfirmed } = await Swal.fire({
+            title: '¿Eliminar?', text: "Esta acción es permanente", icon: 'warning',
+            showCancelButton: true, confirmButtonColor: '#ff4d4d', cancelButtonColor: '#008000'
+        });
+
+        if (isConfirmed) {
+            const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+            if (res.ok) Swal.fire({ icon: 'success', title: 'Eliminado', timer: 1000, showConfirmButton: false });
+        }
+    }
+
+    // Función Actualizar (PUT)
+    async function updateField(id, field, value) {
+        const res = await fetch(`/api/products/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ [field]: Number(value) })
+        });
+
+        if (res.ok) {
+            const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
+            Toast.fire({ icon: 'success', title: 'Actualizado' });
+        }
+    }
+</script>

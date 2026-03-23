@@ -1,0 +1,94 @@
+<style>
+    /* Variables y Contenedor Principal */
+    :root { --primary: #008000; --danger: #ff4d4d; --text-muted: #888; }
+    
+    .detail-card { max-width: 600px; margin: 40px auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-family: sans-serif; }
+    
+    /* Encabezado */
+    .detail-category { color: var(--primary); font-weight: bold; text-transform: uppercase; font-size: 0.8rem; }
+    .detail-title { margin-top: 10px; color: #333; }
+    .detail-divider { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
+    
+    /* Cuerpo y Precios */
+    .detail-desc { color: #555; line-height: 1.6; }
+    .price-section { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; }
+    .price-label { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
+    .price-value { font-size: 2rem; font-weight: bold; color: #222; }
+    
+    /* Stock Badge */
+    .stock-status { margin: 0; font-weight: bold; }
+    .in-stock { color: var(--primary); }
+    .no-stock { color: var(--danger); }
+
+    /* Botón de Acción */
+    .btn-cart { width: 100%; margin-top: 30px; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; transition: 0.3s; }
+    .btn-cart:hover:not(:disabled) { background: #006400; transform: translateY(-2px); }
+    .btn-cart:disabled { background: #ccc; cursor: not-allowed; opacity: 0.8; }
+    
+    /* Enlace de regreso */
+    .back-link { display: block; text-align: center; margin-top: 20px; color: #666; text-decoration: none; font-size: 0.9rem; transition: 0.2s; }
+    .back-link:hover { color: var(--primary); }
+</style>
+
+<div class="detail-card">
+    <span class="detail-category">{{product.category}}</span>
+    <h1 class="detail-title">{{product.title}}</h1>
+    <hr class="detail-divider">
+    
+    <p class="detail-desc">{{product.description}}</p>
+    
+    <div class="price-section">
+        <div>
+            <p class="price-label">Precio total</p>
+            <span class="price-value">${{product.price}}</span>
+        </div>
+        <div style="text-align: right;">
+            <p class="stock-status {{#if product.stock}}in-stock{{else}}no-stock{{/if}}">
+                {{#if product.stock}}Stock disponible: {{product.stock}}{{else}}Agotado{{/if}}
+            </p>
+        </div>
+    </div>
+
+    <button 
+        onclick="addToCart('{{product._id}}')" 
+        class="btn-cart"
+        {{#if (eq product.stock 0)}}disabled{{/if}}
+    >
+        {{#if product.stock}}🛒 AGREGAR AL CARRITO{{else}}SIN STOCK{{/if}}
+    </button>
+    
+    <a href="/products" class="back-link">← Volver al catálogo</a>
+</div>
+
+<script>
+  async function addToCart(pid) {
+    let cid = localStorage.getItem("cartId");
+
+    // Lógica para crear carrito si no existe
+    if (!cid) {
+      try {
+        const response = await fetch('/api/carts', { method: 'POST' });
+        const data = await response.json();
+        cid = data.payload?._id || data._id;
+        localStorage.setItem("cartId", cid);
+      } catch (error) {
+        return console.error("Error al crear el carrito:", error);
+      }
+    }
+
+    // Lógica para agregar producto
+    try {
+      const res = await fetch(`/api/carts/${cid}/product/${pid}`, { method: "POST" });
+
+      if (res.ok) {
+        // Usamos un alert simple o podrías usar SweetAlert si lo tienes importado
+        alert("✅ Producto añadido al carrito");
+        window.dispatchEvent(new Event('cartUpdated'));
+      } else {
+        alert("❌ No se pudo agregar");
+      }
+    } catch (error) {
+      alert("Error en la conexión");
+    }
+  }
+</script>

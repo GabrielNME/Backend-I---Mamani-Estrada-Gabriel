@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiEcommerce - Muebles</title>
+    <style>
+
+
+       /* Icono Carrito */
+      .floating-cart {
+      position: fixed;
+      bottom: 40px;
+      right: 40px;    
+      z-index: 1000; 
+      text-decoration: none;
+      transition: transform 0.3s ease;
+      }
+
+      .floating-cart:hover {
+        transform: scale(1.1);
+        }
+
+      .cart-circle {
+        background-color: #008000; 
+        width: 70px;             
+        height: 70px;
+        border-radius: 50%;      
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3); 
+        position: relative;
+        }
+
+      .cart-icon {
+        font-size: 30px;
+        }
+
+      .cart-count {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: #ff4d4d;
+        color: white;
+        font-size: 0.7rem;
+        font-weight: bold;
+        padding: 3px 7px;
+        border-radius: 50%;
+        border: 2px solid #008000;
+        }
+        /* Estilos Base */
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background-color: #f9f9f9; color: #333; }
+        
+        /* Header Verde */
+        header { 
+            background-color: #008000; color: white; padding: 15px 5%;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .logo {color: white; text-decoration: none; font-size: 1.6rem; font-weight: bold; letter-spacing: -1px; }
+        nav a { color: white; text-decoration: none; margin-left: 20px; font-weight: 500; font-size: 0.9rem; }
+        nav a:hover { text-decoration: underline; }
+        
+        /* Contenedor Principal */
+        main { padding: 30px 5%; max-width: 1000px; margin: 0 auto; }
+
+        /* Estilos de la Lista de Productos */
+        .products-list { display: flex; flex-direction: column; gap: 15px; }
+        
+        .product-item {
+            background: white; border-radius: 12px; padding: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid #eee; transition: all 0.3s ease;
+        }
+        .product-item:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.1); border-color: #008000; }
+
+        .info-container { display: flex; flex-direction: column; gap: 4px; }
+        .product-title { font-size: 1.25rem; font-weight: 600; color: #1a1a1a; }
+        .product-category { font-size: 0.75rem; color: #008000; font-weight: bold; text-transform: uppercase; }
+        
+        /* Badges y Etiquetas */
+        .badge-no-stock {
+            background-color: #e74c3c; color: white; padding: 3px 8px;
+            border-radius: 4px; font-size: 0.7rem; margin-left: 8px;
+        }
+        .price-tag { font-size: 1.5rem; font-weight: 800; color: #333; }
+
+        /* Botones */
+        .btn-view {
+            background-color: transparent; color: #008000; border: 2px solid #008000;
+            padding: 8px 20px; border-radius: 6px; text-decoration: none;
+            font-weight: bold; transition: 0.3s;
+        }
+        .btn-view:hover { background-color: #008000; color: white; }
+
+        .btn-reset {
+            text-decoration: none; color: #666; font-size: 0.85rem;
+            border: 1px solid #ccc; padding: 5px 12px; border-radius: 4px;
+        }
+        .btn-reset:hover { background: #eee; }
+
+        /* Paginación */
+        .pagination { text-align: center; margin-top: 40px; display: flex; justify-content: center; align-items: center; gap: 20px; }
+        .pagination a { 
+            padding: 10px 25px; background: white; border: 1px solid #008000; 
+            text-decoration: none; color: #008000; border-radius: 8px; font-weight: bold;
+        }
+        .pagination a:hover { background: #008000; color: white; }
+    </style>
+</head>
+<body>
+    <header>
+        <a class="logo" href="/products">MiEcommerce</a>
+        <button onclick="accessAdmin()" style="background:none; border:none; color:rgb(111, 124, 112); cursor:pointer; text-decoration:none">
+        🛠️ Admin
+        </button>
+        <nav>
+            <a href="/products?query=Dormitorio">Dormitorio</a>
+            <a href="/products?query=Comedor">Comedor</a>
+            <a href="/products?query=Living">Living</a>
+            <a href="/products?query=Oficina">Oficina</a>
+            
+        </nav>
+    </header>
+
+    <main>
+        {{{body}}}
+
+        <a href="#" id="cart-link" class="floating-cart">
+        <div class="cart-circle">
+        <span class="cart-icon">🛒</span>
+        <span id="cart-count" class="cart-count"></span>
+        </div>
+        </a>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+
+      async function accessAdmin() {
+    const { value: password } = await Swal.fire({
+        title: 'Ingrese la contraseña de Admin',
+        input: 'password',
+        inputLabel: 'Password',
+        inputPlaceholder: 'Ingrese su contraseña',
+        showCancelButton: true
+    });
+
+    if (password) {
+        window.location.href = `/realtimeproducts?password=${password}`;
+    }
+}
+
+    function updateCartLink() {
+        const cartId = localStorage.getItem("cartId");
+        const cartLink = document.getElementById("cart-link");
+        
+        if (cartId) {
+            cartLink.href = `/carts/${cartId}`;
+            cartLink.style.opacity = "1";
+        } else {
+            cartLink.href = "#";
+            cartLink.style.opacity = "0.5";
+            cartLink.title = "Tu carrito está vacío";
+        }
+    }
+
+    updateCartLink();
+
+    window.addEventListener('storage', updateCartLink);
+
+
+    async function updateHeaderCart() {
+        const cartId = localStorage.getItem("cartId");
+        if (!cartId) return;
+
+        const cartLink = document.getElementById("cart-link");
+        const cartCount = document.getElementById("cart-count");
+        
+        cartLink.href = `/carts/${cartId}`;
+        
+        try {
+            const res = await fetch(`/api/carts/${cartId}`);
+            const data = await res.json();
+            
+            const cart = data.payload || data;
+            const totalItems = cart.products?.reduce((acc, curr) => acc + curr.quantity, 0) || 0;
+            
+            if (totalItems > 0) {
+                cartCount.innerText = totalItems;
+                cartCount.style.display = "inline-block";
+            } else {
+                cartCount.style.display = "none";
+            }
+        } catch (err) {
+            console.error("Error actualizando header:", err);
+        }
+    }
+
+    updateHeaderCart();
+
+    window.addEventListener('cartUpdated', updateHeaderCart);
+</script>
+</body>
+
+
+</html>

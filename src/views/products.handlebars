@@ -1,0 +1,104 @@
+<style>
+    /* Variables y Contenedores */
+    :root { --primary: #008000; --danger: #ff4d4d; --gray: #888; --light-bg: #f8f8f8; }
+    
+    .toolbar { background: white; padding: 20px; border-radius: 12px; margin-bottom: 10px; display: flex; gap: 20px; align-items: center; flex-wrap: wrap; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #eee; }
+    .tool-group { display: flex; align-items: center; gap: 10px; }
+    .tool-label { font-size: 0.75rem; font-weight: bold; color: var(--gray); text-transform: uppercase; }
+    .separator { border-left: 1px solid #eee; height: 25px; }
+    
+    /* Botones y Selects */
+    .btn-tool { font-size: 0.8rem; text-decoration: none; padding: 5px 10px; border: 1px solid #ccc; border-radius: 4px; color: #333; }
+    .btn-primary { border-color: var(--primary); color: var(--primary); }
+    .btn-clear { background: #f0f0f0; border: none; font-size: 0.8rem; padding: 8px 15px; border-radius: 6px; text-decoration: none; color: #333; }
+    .select-std { padding: 5px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.8rem; cursor: pointer; }
+
+    /* Lista de Productos */
+    .product-item { display: flex; justify-content: space-between; align-items: center; padding: 20px; border: 1px solid #eee; border-radius: 12px; margin-bottom: 15px; background: white; transition: 0.2s; }
+    .product-item.out-of-stock { opacity: 0.6; background-color: #fafafa; }
+    .product-category { font-weight: bold; color: var(--primary); text-transform: uppercase; font-size: 0.75rem; }
+    .badge-out { background: var(--danger); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; margin-left: 5px; }
+    .price-tag { font-weight: bold; font-size: 1.3rem; color: var(--primary); }
+    .btn-view { background: var(--primary); color: white; text-decoration: none; padding: 8px 15px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; }
+
+    /* Paginación */
+    .pagination { margin-top: 40px; display: flex; justify-content: center; align-items: center; gap: 20px; }
+    .page-link { color: var(--primary); text-decoration: none; font-weight: bold; border: 1px solid var(--primary); padding: 8px 15px; border-radius: 6px; }
+    .page-info { background: var(--light-bg); padding: 8px 20px; border-radius: 6px; border: 1px solid #eee; }
+</style>
+
+<div class="toolbar">
+    <div class="tool-group">
+        <label class="tool-label">Precio:</label>
+        <a href="/products?sort=asc&limit={{limit}}" class="btn-tool">Menor a Mayor ↑</a>
+        <a href="/products?sort=desc&limit={{limit}}" class="btn-tool">Mayor a Menor ↓</a>
+    </div>
+
+    <div class="separator"></div>
+
+    <div class="tool-group">
+        <label class="tool-label">Stock:</label>
+        <a href="/products?query=disponible&limit={{limit}}" class="btn-tool btn-primary">Solo Disponibles</a>
+    </div>
+
+    <div class="separator"></div>
+
+    <div class="tool-group">
+        <label class="tool-label">Mostrar:</label>
+        <select class="select-std" onchange="location.href='/products?limit='+this.value+'&page=1'">
+            <option value="5" {{#if (eq limit 5)}}selected{{/if}}>5 productos</option>
+            <option value="10" {{#if (eq limit 10)}}selected{{/if}}>10 productos</option>
+            <option value="20" {{#if (eq limit 20)}}selected{{/if}}>20 productos</option>
+        </select>
+    </div>
+
+    <div style="flex-grow: 1;"></div>
+    <a href="/products" class="btn-clear">✕ Limpiar Filtros</a>
+</div>
+
+<div style="margin-bottom: 20px; padding-left: 5px;">
+    <span style="color: #666; font-size: 0.9rem;">
+        Se encontraron <strong>{{totalDocs}}</strong> productos. Mostrando página <strong>{{page}}</strong> de {{totalPages}}.
+    </span>
+</div>
+
+<div class="products-list">
+  {{#each payload}}
+    <div class="product-item {{#if (eq this.stock 0)}}out-of-stock{{/if}}">
+      <div class="info-container">
+        <span class="product-category">
+            {{this.category}}
+            {{#if (eq this.stock 0)}}<span class="badge-out">AGOTADO</span>{{/if}}
+        </span>
+        <span style="display: block; font-weight: bold; font-size: 1.1rem; margin: 5px 0;">{{this.title}}</span>
+        <small style="color: #777;">Código: {{this.code}} | Disponibles: {{this.stock}}</small>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 25px;">
+        <span class="price-tag">${{this.price}}</span>
+        <a href="/products/{{this._id}}" class="btn-view">DETALLES</a>
+      </div>
+    </div>
+  {{/each}}
+</div>
+
+{{#unless payload.length}}
+  <div style="text-align: center; padding: 80px 20px;">
+    <h3 style="color: #999;">No encontramos lo que buscas...</h3>
+    <a href="/products" style="color: var(--primary); font-weight: bold;">Volver a ver todos los muebles</a>
+  </div>
+{{/unless}}
+
+<div class="pagination">
+  {{#if hasPrevPage}}
+    <a href="{{prevLink}}" class="page-link">« Anterior</a>
+  {{/if}}
+
+  <span class="page-info">
+      Página <strong>{{page}}</strong> de <strong>{{totalPages}}</strong>
+  </span>
+
+  {{#if hasNextPage}}
+    <a href="{{nextLink}}" class="page-link">Siguiente »</a>
+  {{/if}}
+</div>

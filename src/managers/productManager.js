@@ -1,78 +1,67 @@
-import crypto from "crypto";
-import fs from "fs";
-import path from "path";
+import { ProductModel } from "../models/product.model.js";
 
 export default class ProductManager {
-  constructor() {
-    this.path = path.resolve("src/data/products.json");
-  }
-
-  async _readFile() {
+  async getProducts({ limit = 10, page = 1, sort, query } = {}) {
     try {
-      if (!fs.existsSync(this.path)) return [];
-      const data = await fs.promises.readFile(this.path, "utf-8");
-      return JSON.parse(data);
+      const filter = {};
+      if (query) {
+        if (query === "disponible") filter.stock = { $gt: 0 };
+        else if (query === "true" || query === "false") filter.status = query === "true";
+        else filter.category = query;
+      }
+
+      const options = {
+        page,
+        limit,
+        sort: sort === "asc" ? { price: 1 } : sort === "desc" ? { price: -1 } : {},
+        lean: true,
+      };
+
+      const result = await ProductModel.paginate(filter, options);
+
+      return {
+        status: "success",
+        payload: result.docs,
+        totalPages: result.totalPages,
+        prevPage: result.prevPage,
+        nextPage: result.nextPage,
+        page: result.page,
+        hasPrevPage: result.hasPrevPage,
+        hasNextPage: result.hasNextPage,
+      };
     } catch (error) {
-      throw new Error("Error al leer el archivo de productos");
+      throw new Error("Error al obtener productos paginados");
     }
   }
 
-  async _writeFile(data) {
+  async getAllProducts() {
     try {
-      await fs.promises.writeFile(this.path, JSON.stringify(data, null, 2));
+      return await ProductModel.find().lean(); 
     } catch (error) {
-      throw new Error("Error al escribir el archivo de productos");
+      throw new Error("Error al obtener la lista completa de productos");
     }
-  }
-
-  async getProducts() {
-    return await this._readFile();
   }
 
   async getProductById(id) {
-    const products = await this._readFile();
-    return products.find((p) => p.id === id);
+    return await ProductModel.findById(id).lean();
   }
 
   async addProduct(productData) {
-    const products = await this._readFile();
-
-    const newProduct = {
-      id: crypto.randomUUID(),
-      status: true,
-      thumbnails: [],
-      ...productData,
-    };
-
-    products.push(newProduct);
-    await this._writeFile(products);
-
-    return newProduct;
-  }
-
-  async updateProduct(id, updateData) {
-    const products = await this._readFile();
-    const index = products.findIndex((p) => p.id === id);
-
-    if (index === -1) return null;
-
-    products[index] = {
-      ...products[index],
-      ...updateData,
-      id: products[index].id,
-    };
-
-    await this._writeFile(products);
-    return products[index];
+    const newProduct = await ProductModel.create(productData);
+    return newProduct.toObject();
   }
 
   async deleteProduct(id) {
-    const products = await this._readFile();
-    const filteredProducts = products.filter((p) => p.id !== id);
-
-    if (products.length === filteredProducts.length) return null;
-
-    await this._writeFile(filteredProducts);
-    return true;
+    const result = await ProductModel.findByIdAndDelete(id);
+    return !!result;
   }
+
+async updateProduct(id, updateData) {
+    try {
+        return await ProductModel.findByIdAndUpdate(id, updateData, { new: true }).lean();
+    } catch (error) {
+        console.error("Error al actualizar producto en Manager:", error);
+        throw new Error("Error al actualizar el producto");
+    }
+}
 }

@@ -1,0 +1,148 @@
+<style>
+    /* Variables y Contenedor */
+    :root { --primary: #008000; --danger: #ff4d4d; --bg-light: #f0f0f0; --shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .cart-wrapper { max-width: 900px; margin: 0 auto; padding: 20px; font-family: sans-serif; }
+    
+    /* Cabecera */
+    .cart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    .cart-title { border-left: 5px solid var(--primary); padding-left: 15px; margin: 0; }
+    .btn-empty { background: none; border: 1px solid var(--danger); color: var(--danger); padding: 8px 15px; border-radius: 6px; cursor: pointer; transition: 0.3s; }
+    .btn-empty:hover { background: var(--danger); color: white; }
+
+    /* Items del Carrito */
+    .cart-item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; padding: 20px; background: white; border-radius: 12px; box-shadow: var(--shadow); border: 1px solid #eee; }
+    .item-details { flex: 2; }
+    .item-category { color: var(--primary); font-weight: bold; font-size: 0.75rem; text-transform: uppercase; }
+    
+    /* Controles de Cantidad */
+    .qty-controls { flex: 1; display: flex; align-items: center; gap: 12px; justify-content: center; }
+    .btn-qty { width: 30px; height: 30px; cursor: pointer; border: 1px solid #ccc; background: #f8f8f8; border-radius: 6px; font-weight: bold; }
+    .qty-value { font-weight: bold; min-width: 25px; text-align: center; font-size: 1.1rem; }
+
+    /* Precios y Totales */
+    .item-total-price { flex: 1; text-align: right; padding: 0 20px; }
+    .price-subtotal { font-size: 1.2rem; font-weight: bold; color: var(--primary); display: block; }
+    .footer-checkout { margin-top: 30px; padding: 25px; background: var(--bg-light); border-radius: 15px; text-align: right; border: 1px solid #e0e0e0; }
+    .total-amount { color: var(--primary); font-size: 1.8rem; font-weight: bold; }
+    .btn-confirm { margin-top: 20px; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; font-size: 1.1rem; transition: 0.3s; }
+    .btn-confirm:hover { background: #006400; transform: translateY(-2px); }
+
+    .btn-del-item { background: var(--danger); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; opacity: 0.9; }
+    .btn-del-item:hover { opacity: 1; }
+</style>
+
+<div class="cart-wrapper">
+    <div class="cart-header">
+        <h2 class="cart-title">Tu Carrito 🛒</h2>
+        <button onclick="emptyCart()" class="btn-empty">Vaciar Carrito</button>
+    </div>
+
+    <div id="cart-container">
+        {{#if cart.products.length}}
+            {{#each cart.products}}
+            <div class="cart-item">
+                <div class="item-details">
+                    <span class="item-category">{{this.product.category}}</span>
+                    <h3 style="margin: 5px 0;">{{this.product.title}}</h3>
+                    <p style="color: #666; font-size: 0.85rem;">Unitario: ${{this.product.price}}</p>
+                </div>
+
+                <div class="qty-controls">
+                    <button class="btn-qty" onclick="updateQty('{{../cart._id}}', '{{this.product._id}}', {{this.quantity}}, -1)">-</button>
+                    <span class="qty-value">{{this.quantity}}</span>
+                    <button class="btn-qty" onclick="updateQty('{{../cart._id}}', '{{this.product._id}}', {{this.quantity}}, 1, {{this.product.stock}})">+</button>
+                </div>
+
+                <div class="item-total-price">
+                    <span class="price-subtotal">${{multiplicar this.product.price this.quantity}}</span>
+                    <p style="font-size: 0.7rem; color: #999; margin: 0;">Stock: {{this.product.stock}}</p>
+                </div>
+
+                <button class="btn-del-item" onclick="removeItem('{{../cart._id}}', '{{this.product._id}}')">🗑️</button>
+            </div>
+            {{/each}}
+
+            <div class="footer-checkout">
+                <h3 style="margin: 0;">Total a pagar: <span class="total-amount">${{totalCart cart.products}}</span></h3>
+                <button class="btn-confirm" onclick="finalizePurchase('{{cart._id}}')">
+                    CONFIRMAR COMPRA
+                </button>
+            </div>
+        {{else}}
+            <div style="text-align: center; padding: 80px;">
+                <p style="font-size: 1.2rem; color: #999;">Aún no tienes muebles en tu carrito.</p>
+                <a href="/products" style="color: var(--primary); font-weight: bold; text-decoration: none; border: 1px solid var(--primary); padding: 10px 20px; border-radius: 8px; display: inline-block; margin-top: 20px;">Ir al catálogo</a>
+            </div>
+        {{/if}}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    // Usamos una función auxiliar para refrescar UI de forma limpia
+    const refresh = () => location.reload();
+
+    async function removeItem(cid, pid) {
+        const result = await Swal.fire({
+            title: '¿Eliminar producto?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ff4d4d',
+            confirmButtonText: 'Sí, borrar'
+        });
+        if(result.isConfirmed) {
+            const res = await fetch(`/api/carts/${cid}/products/${pid}`, { method: 'DELETE' });
+            if(res.ok) refresh();
+        }
+    }
+
+    async function updateQty(cid, pid, currentQty, change, stock) {
+        const newQty = currentQty + change;
+        if (newQty < 1) return;
+        if (change > 0 && newQty > stock) return Swal.fire('Sin stock', 'No hay más unidades disponibles', 'error');
+
+        const res = await fetch(`/api/carts/${cid}/products/${pid}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ quantity: newQty })
+        });
+        if(res.ok) refresh();
+    }
+
+    async function emptyCart() {
+        const cid = localStorage.getItem("cartId");
+        const result = await Swal.fire({ title: '¿Vaciar carrito?', icon: 'question', showCancelButton: true });
+        if(result.isConfirmed) {
+            await fetch(`/api/carts/${cid}`, { method: 'DELETE' });
+            refresh();
+        }
+    }
+
+    async function finalizePurchase(cid) {
+        try {
+            const res = await fetch(`/api/carts/${cid}/purchase`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                await Swal.fire({
+                    icon: 'success',
+                    title: '¡Compra exitosa!',
+                    text: `Ticket: ${data.ticket.code} | Total: $${data.ticket.amount}`,
+                    confirmButtonColor: '#008000'
+                });
+                
+                if (data.unprocessedProducts?.length > 0) {
+                    await Swal.fire('Aviso', 'Algunos productos sin stock quedaron en el carrito.', 'info');
+                }
+                window.location.href = "/products";
+            } else {
+                Swal.fire('Error', data.message || "Error al procesar", 'error');
+            }
+        } catch (error) {
+            Swal.fire('Error', 'Error de conexión', 'error');
+        }
+    }
+</script>
